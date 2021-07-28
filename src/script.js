@@ -2,145 +2,109 @@ import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'dat.gui'
-
-// Debug
-const gui = new dat.GUI()
-
-// Textures
-const textureLoader = new THREE.TextureLoader()
-const cubeTextureLoader = new THREE.CubeTextureLoader()
-
-const colorTexture = textureLoader.load('/textures/door/color.jpg')
-const alphaTexture = textureLoader.load('/textures/door/alpha.jpg')
-const heightTexture = textureLoader.load('/textures/door/height.jpg')
-const normalTexture = textureLoader.load('/textures/door/normal.jpg')
-const ambientOcclusionTexture = textureLoader.load('/textures/door/ambientOcclusion.jpg')
-const metalnessTexture = textureLoader.load('/textures/door/metalness.jpg')
-const roughnessTexture = textureLoader.load('/textures/door/roughness.jpg')
-const gradientTexture = textureLoader.load('/textures/gradients/5.jpg')
-const matcapTexture = textureLoader.load('/textures/matcaps/8.png')
-gradientTexture.minFilter = THREE.NearestFilter
-gradientTexture.magFilter = THREE.NearestFilter
-gradientTexture.generateMipmaps = false
-
-const environmentalMapTexture = cubeTextureLoader.load([
-    '/textures/environmentMaps/2/px.jpg',
-    '/textures/environmentMaps/2/nx.jpg',
-    '/textures/environmentMaps/2/py.jpg',
-    '/textures/environmentMaps/2/ny.jpg',
-    '/textures/environmentMaps/2/pz.jpg',
-    '/textures/environmentMaps/2/nz.jpg',
-])
+import {RectAreaLightHelper} from 'three/examples/jsm/helpers/RectAreaLightHelper.js'
 
 /**
  * Base
  */
+// Debug
+const gui = new dat.GUI()
+
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene()
 
-// Object
-// const material = new THREE.MeshBasicMaterial()
-// material.map = colorTexture
-// material.color = new THREE.Color(0x00ff00)
-// material.color.set('pink')
-// material.wireframe = true
+/**
+ * Lights
+ */
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+scene.add(ambientLight)
 
-// material.opacity = 0.5
-// material.transparent = true
+const directionalLight = new THREE.DirectionalLight(0x00fffc, 0.3)
+directionalLight.position.set(1, 0.25, 0)
+scene.add(directionalLight)
 
-// material.alphaMap = alphaTexture
-// material.side = THREE.DoubleSide
+const hemisphereLight = new THREE.HemisphereLight(0xff0000, 0x0000ff, 0.3);
+scene.add(hemisphereLight)
 
-// const material = new THREE.MeshNormalMaterial()
-// material.flatShading = true
+const pointLight = new THREE.PointLight(0xff9000, 0.5, 10, 2)
+pointLight.position.set(1, -0.5, 1)
+scene.add(pointLight)
 
-// const material = new THREE.MeshMatcapMaterial()
-// material.matcap = matcapTexture
+const rectAreaLight = new THREE.RectAreaLight(0x4e00ff, 2, 1, 1)
+rectAreaLight.position.set(-1.5, 0, 1.5)
+rectAreaLight.lookAt(new THREE.Vector3())
+scene.add(rectAreaLight)
 
-// const material = new THREE.MeshDepthMaterial()
+const spotLight = new THREE.SpotLight(0x78ff00, 0.5, 7, Math.PI * 0.1, 0.25, 1)
+spotLight.position.set(0, 2, 3)
+scene.add(spotLight)
 
-// const material = new THREE.MeshLambertMaterial()
+spotLight.target.position.x = -0.75
+scene.add(spotLight.target)
 
-// const material = new THREE.MeshPhongMaterial()
-// material.shininess = 100
-// material.specular = new THREE.Color(0x1188ff)
+// Helpers
+const hemisphereLightHelper = new THREE.HemisphereLightHelper(hemisphereLight, 0.2)
+scene.add(hemisphereLightHelper)
 
-// const material = new THREE.MeshToonMaterial()
-// material.gradientMap = gradientTexture
+const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 0.2)
+scene.add(directionalLightHelper)
 
-// const material = new THREE.MeshStandardMaterial()
-// material.metalness = 0
-// material.roughness = 1
-// material.map = colorTexture
-// material.aoMap = ambientOcclusionTexture
-// material.aoMapIntensity = 1
-// material.displacementMap = heightTexture
-// material.displacementScale = 0.05
-// material.metalnessMap = metalnessTexture
-// material.roughnessMap = roughnessTexture
-// material.normalMap = normalTexture
-// material.normalScale.set(0.5, 0.5)
-// material.alphaMap = alphaTexture
-// material.transparent = true
+const pointLightHelper = new THREE.PointLightHelper(pointLight, 0.2)
+scene.add(pointLightHelper)
 
-const material = new THREE.MeshStandardMaterial()
-material.metalness = 1
-material.roughness = 0
-material.envMap = environmentalMapTexture
+const spotLightHelper = new THREE.SpotLightHelper(spotLight)
+scene.add(spotLightHelper)
+
+window.requestAnimationFrame(() => {
+    spotLightHelper.update()
+})
+
+const rectAreaLightHelper = new RectAreaLightHelper(rectAreaLight)
+scene.add(rectAreaLightHelper)
 
 // Debug
-gui.add(material, 'metalness').min(0).max(1).step(0.0001)
-gui.add(material, 'roughness').min(0).max(1).step(0.0001)
-gui.add(material, 'aoMapIntensity').min(0).max(10).step(0.0001)
-gui.add(material, 'displacementScale').min(0).max(1).step(0.0001)
+gui.add(ambientLight, 'intensity').min(0).max(1).step(0.01)
+    .name('Ambient Light intensity')
+gui.add(directionalLight, 'intensity').min(0).max(1).step(0.01)
+    .name('Directional Light intensity')
 
+
+/**
+ * Objects
+ */
+// Material
+const material = new THREE.MeshStandardMaterial()
+material.roughness = 0.4
+
+// Objects
 const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5, 64, 64),
+    new THREE.SphereGeometry(0.5, 32, 32),
     material
 )
-sphere.position.x = -1.5
+sphere.position.x = - 1.5
 
-sphere.geometry.setAttribute(
-    'uv2',
-    new THREE.BufferAttribute(sphere.geometry.attributes.uv.array, 2)
-)
-
-const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1, 100, 100),
+const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(0.75, 0.75, 0.75),
     material
-)
-
-plane.geometry.setAttribute(
-    'uv2',
-    new THREE.BufferAttribute(plane.geometry.attributes.uv.array, 2)
 )
 
 const torus = new THREE.Mesh(
-    new THREE.TorusGeometry(0.3, 0.2, 64, 128),
+    new THREE.TorusGeometry(0.3, 0.2, 32, 64),
     material
 )
 torus.position.x = 1.5
 
-torus.geometry.setAttribute(
-    'uv2',
-    new THREE.BufferAttribute(torus.geometry.attributes.uv.array, 2)
+const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(5, 5),
+    material
 )
+plane.rotation.x = - Math.PI * 0.5
+plane.position.y = - 0.65
 
-
-scene.add(sphere, plane, torus)
-
-// Lights
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
-scene.add(ambientLight)
-
-const pointLight = new THREE.PointLight(0xffffff, 0.5)
-pointLight.position.x = 2
-pointLight.position.y = 3
-pointLight.position.z = 4
-scene.add(pointLight)
+scene.add(sphere, cube, torus, plane)
 
 /**
  * Sizes
@@ -196,13 +160,13 @@ const tick = () => {
     const elapsedTime = clock.getElapsedTime()
 
     // Update objects
-    sphere.rotation.y = elapsedTime * 0.1
-    plane.rotation.y = elapsedTime * 0.2
-    torus.rotation.y = elapsedTime * 0.4
+    sphere.rotation.y = 0.1 * elapsedTime
+    cube.rotation.y = 0.1 * elapsedTime
+    torus.rotation.y = 0.1 * elapsedTime
 
-    sphere.rotation.x = elapsedTime * 0.1
-    plane.rotation.x = elapsedTime * 0.2
-    torus.rotation.x = elapsedTime * 0.4
+    sphere.rotation.x = 0.15 * elapsedTime
+    cube.rotation.x = 0.15 * elapsedTime
+    torus.rotation.x = 0.15 * elapsedTime
 
     // Update controls
     controls.update()
